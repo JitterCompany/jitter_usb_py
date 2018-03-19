@@ -166,7 +166,10 @@ class USBThread:
 
 
     def remove_device(self, device):
-        self._thread_events.wrap(self._remove_device)(device)
+        if self._running:
+            self._thread_events.wrap(self._remove_device)(device)
+        else:
+            self._remove_device(device)
 
 
     def _remove_device(self, device):
@@ -217,6 +220,11 @@ class USBThread:
     
     def quit(self):
         self._running = False
+        for i in range (50):
+            if self._running is None:
+                break
+            time.sleep(0.1)
+
 
     def poll(self):
         while(self._running):
@@ -237,6 +245,8 @@ class USBThread:
         self.writeCompleteQueue.queue.clear()
         self.controlCompleteQueue.queue.clear()
         self.syncQueue.queue.clear()
+
+        self._running = None
 
 
     def submit_control_request(self, task):

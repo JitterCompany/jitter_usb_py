@@ -54,6 +54,7 @@ class USB:
     def quit(self):
         self._running = False
         start_quit = time.time()
+
         while self._running is not None:
             if time.time() - start_quit > 2:
                 print("\rUSB: thread crashed, force quit")
@@ -61,7 +62,13 @@ class USB:
 
         if self._update_server:
             self._update_server.stop()
+
+        self._device_list.quit()
         self._usb_thread.quit()
+
+        # remove all devices
+        for dev in self.list_devices():
+            dev.remove()
 
 
     def list_devices(self):

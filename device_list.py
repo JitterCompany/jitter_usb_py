@@ -3,7 +3,6 @@ import queue
 import time
 
 import usb.core
-import usb.util
 
 from device import Device
 
@@ -57,11 +56,20 @@ class DeviceList:
                     self._usb_VID, self._usb_PID, dev_class, self._hotplug_cb, 0)
             self.hotplug_iterator = hotplug.loop()
 
+        self._running = True
         self.usbEventThread = threading.Thread(target=self._usb_handle_events)
         self.usbEventThread.daemon = True
         self.usbEventThread.start()
 
         self.first_time = True
+
+
+    def quit(self):
+        self._running = False
+        for i in range(5):
+            if self._running is None:
+                break
+            time.sleep(0.1)
 
     def _has_changed(self):
         """ Returns True if device list has changed """
@@ -128,21 +136,23 @@ class DeviceList:
 
     def _usb_handle_events(self):
 
-        # hotplug support: submit real hotplug events when they happen
-        if hotplug is not None:
-            while True:
+        while self._running:
+            #print("DeviceList::_usb_handle_events()")
+            # hotplug support: submit real hotplug events when they happen
+            if hotplug is not None:
                 #hotplugging
                 next(self.hotplug_iterator)
                 time.sleep(0.1)
 
-        # no hotplug support: emulate it by submitting fake hotplug events
-        # every n seconds. This should cause the high-level logic
-        # to check for changed devices.
-        else:
-            while True:
+            # no hotplug support: emulate it by submitting fake hotplug events
+            # every n seconds. This should cause the high-level logic
+            # to check for changed devices.
+            else:
                 self.hotplugEventQueue.put(None)
                 time.sleep(2.0)
-
+        
+        print("DeviceListThread: exit")
+        self._running = None
 
     def _hotplug_cb(self, usb_device, event, dummy_ctx):
         print("==== Hotplug ====", usb_device._str(), event)
