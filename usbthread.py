@@ -9,7 +9,6 @@ import usb.util as util
 
 import error
 
-liveThread = None
 
 class USBTask:
 

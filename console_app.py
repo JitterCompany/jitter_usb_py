@@ -22,7 +22,6 @@ USB_PID                 = 0x0021
 
 PROTOCOL_EP             = 5
 READ_TIMEOUT            = 1
-POLL_INTERVAL_MS        = 10
 POLL_INTERVAL_SLOW_MS   = 1000
 TERMINAL_PREFIX         = "Info: terminal:"
 
@@ -46,10 +45,6 @@ class ConsoleApp:
         self._view.show()
         self._view.create_tool_bar(self._status)
 
-        self._timer = QtCore.QTimer()
-        self._timer.timeout.connect(self._timer_poll)
-        self._timer.start(POLL_INTERVAL_MS)
-
         self._slow_timer = QtCore.QTimer()
         self._slow_timer.timeout.connect(self._slow_timer_poll)
         self._slow_timer.start(POLL_INTERVAL_SLOW_MS)
@@ -65,13 +60,6 @@ class ConsoleApp:
         # subscribe on text output
         device.on_text(self._process_line)
         return device
-
-
-    def _timer_poll(self):
-        """ Frequently complete control+read tasks """
-        
-        # TODO this will move to its own thread...
-        self._USB.poll()
 
 
     def _slow_timer_poll(self):

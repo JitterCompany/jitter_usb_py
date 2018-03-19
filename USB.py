@@ -2,6 +2,12 @@ from usbthread import USBThread
 from device import Device
 from device_list import DeviceList
 from update_server import FirmwareUpdateServer
+from threading import Thread
+import time
+
+
+POLL_INTERVAL_FAST_SEC = 0.1
+POLL_INTERVAL_SLOW_SEC = 1.5
 
 
 def default_device_builder(*args, **kwargs):
@@ -11,18 +17,14 @@ def default_device_builder(*args, **kwargs):
 
 class USB:
 
-    # pass in a custom device_creator_func if you want to
-    # use a custom Device subclass
-
-    # TODO: remove protocol_ep, read_timeout params? they are only used for
-    # the default device_builder
+    # pass in a custom device_creator_func, for example if you want to
+    # use a custom Device subclass or add Device init code
     def __init__(self, USB_VID, USB_PID,
             device_creator_func,
             firmware_update_server_enable=True,
             firmware_update_server_host='localhost',
             firmware_update_server_port=3853):
         
-        self._i = 0
         self._usb_thread = USBThread()
 
         # inject _usb_thread as parameter each time a Device is created
@@ -42,7 +44,16 @@ class USB:
             self._update_server = None
 
 
+        self._running = True
+        self._event_thread = Thread(target=self._run)
+        self._event_thread.deamon = True
+        self._event_thread.start();
+
+
     def quit(self):
+        self._running = False
+        while self._running is not None:
+            pass
         if self._update_server:
             self._update_server.stop()
         self._usb_thread.quit()
@@ -53,25 +64,31 @@ class USB:
         return self._device_list.all()
 
     
-    # TODO run as a thread, get rid of _i (use timing instead)
-    def poll(self):
-        self._i+=1
+    # This runs in a separate thread
+    def _run(self):
+        last_slow = time.time()
+        while(self._running):
 
-        self._update_devicelist()
+            time.sleep(POLL_INTERVAL_FAST_SEC)
+            self._update_devicelist()
 
-        if self._update_server:
-            self._update_server.poll()
+            if self._update_server:
+                self._update_server.poll()
 
-        while self._usb_thread.complete_control_task():
-            pass
-        while self._usb_thread.complete_write_task():
-            pass
-        while self._usb_thread.complete_read_task():
-            pass
+            while self._usb_thread.complete_control_task():
+                pass
+            while self._usb_thread.complete_write_task():
+                pass
+            while self._usb_thread.complete_read_task():
+                pass
 
-        if self._i > 250:
-            self._i = 0
-            self._slow_poll()
+            if time.time() - last_slow > POLL_INTERVAL_SLOW_SEC:
+                last_slow = time.time()
+                self._slow_poll()
+
+        # end of thread
+        self._running = None
+
 
     def _slow_poll(self):
         for dev in self.list_devices():
