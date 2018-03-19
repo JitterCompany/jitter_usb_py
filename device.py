@@ -16,12 +16,6 @@ def _hash_serial(serial):
 VENDOR_REQUEST = namedtuple('VendorRequest', ['req', 'cb'])
 
 
-def make_device_builder(usb_thread, protocol_ep, read_timeout):
-    def default_device_builder(usb_device):
-        """ Default device builder: known how to build a Device """
-        return Device(usb_device, usb_thread, protocol_ep, read_timeout)
-    return default_device_builder
-    
 def _noparams_callback(original_func):
     if not original_func:
         return None

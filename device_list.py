@@ -111,7 +111,7 @@ class DeviceList:
                 # new: add
 
                 # create new device with usb_dev as argument
-                dev = self._device_create(usb_dev)
+                dev = self._device_create(usb_device=usb_dev)
 
                 print("==== NEW device: ====")
                 print(str(dev))

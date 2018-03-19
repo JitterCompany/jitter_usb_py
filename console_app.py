@@ -13,7 +13,7 @@ from status_widget import StatusWidget
 from terminal import Terminal
 from debuglog import DebugLog
 from console import ConsoleView
-from USB import USB
+from USB import USB, default_device_builder
 
 
 #### Settings ####
@@ -27,6 +27,7 @@ POLL_INTERVAL_SLOW_MS   = 1000
 TERMINAL_PREFIX         = "Info: terminal:"
 
 
+
 class ConsoleApp:
 
     def __init__(self):
@@ -36,6 +37,7 @@ class ConsoleApp:
         self._console = ConsoleView()
         self._debuglog = DebugLog()
         self._USB = USB(USB_VID, USB_PID,
+                device_creator_func=self._device_builder,
                 protocol_ep=PROTOCOL_EP,
                 read_timeout=READ_TIMEOUT,
                 firmware_update_server_enable=True)
@@ -57,6 +59,16 @@ class ConsoleApp:
         self._selected_device = None
 
 
+    def _device_builder(self, *args, **kwargs):
+        """ USB calls this function each time a new Device is constructed """
+        device = default_device_builder(*args, **kwargs,
+                protocol_ep=PROTOCOL_EP, read_timeout=READ_TIMEOUT)
+
+        # subscribe on text output
+        device.on_text(self._process_line)
+        return device
+
+
     def _timer_poll(self):
         """ Frequently complete control+read tasks """
         
@@ -69,10 +81,6 @@ class ConsoleApp:
             self.select_device_at(0)
         for dev in self._USB.list_devices():
             dev.update_metadata()
-
-            # TODO this is a hack: just needs to be done once at Device
-            # construction...
-            dev.on_text(self._process_line)
 
         self._update_views()
 

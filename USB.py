@@ -1,8 +1,13 @@
 from usbthread import USBThread
-from device import Device, make_device_builder
+from device import Device
 from device_list import DeviceList
 from update_server import FirmwareUpdateServer
 
+
+def default_device_builder(*args, **kwargs):
+    """ Default device builder: builds a Device instance when called """
+    return Device(*args, **kwargs)
+    
 
 class USB:
 
@@ -12,7 +17,7 @@ class USB:
     # TODO: remove protocol_ep, read_timeout params? they are only used for
     # the default device_builder
     def __init__(self, USB_VID, USB_PID,
-            device_creator_func=None,
+            device_creator_func,
             protocol_ep=5,
             read_timeout=1,
             firmware_update_server_enable=True,
@@ -21,10 +26,13 @@ class USB:
         
         self._usb_thread = USBThread()
 
-        if device_creator_func is None:
-            device_creator_func = make_device_builder(self._usb_thread,
-                    protocol_ep, read_timeout=read_timeout)
-        self._device_list = DeviceList(USB_VID, USB_PID, device_creator_func)
+        # inject _usb_thread as parameter each time a Device is created
+        def device_creator_with_thread(*args, **kwargs):
+            return device_creator_func(*args, **kwargs,
+                    usb_thread=self._usb_thread)
+
+        self._device_list = DeviceList(USB_VID, USB_PID,
+                device_creator_with_thread)
 
         if firmware_update_server_enable:
             self._update_server = FirmwareUpdateServer(
@@ -35,21 +43,10 @@ class USB:
             self._update_server = None
 
 
-
     def quit(self):
         if self._update_server:
             self._update_server.stop()
         self._usb_thread.quit()
-
-
-    def _update_devicelist(self):
-        """ update list of devices: returns ([obsolete_list], [new_list]) """
-
-        obsolete, new = self._device_list.update()
-        if len(obsolete) or len(new):
-            if self._update_server:
-                self._update_server.update_device_list(self.list_devices())
-        return (obsolete, new)
 
 
     def list_devices(self):
@@ -70,4 +67,14 @@ class USB:
             pass
         while self._usb_thread.complete_read_task():
             pass
+
+
+    def _update_devicelist(self):
+        """ update list of devices: returns ([obsolete_list], [new_list]) """
+
+        obsolete, new = self._device_list.update()
+        if len(obsolete) or len(new):
+            if self._update_server:
+                self._update_server.update_device_list(self.list_devices())
+        return (obsolete, new)
 
