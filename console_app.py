@@ -59,42 +59,25 @@ class ConsoleApp:
 
     def _timer_poll(self):
         """ Frequently complete control+read tasks """
-
-        maxNumTasks = 10
-        while maxNumTasks:
-            busy = self._handle_read_tasks()
-            if not busy:
-                break
-            maxNumTasks -= 1
-
+        
+        # TODO this will move to its own thread...
         self._USB.poll()
-        if not self._selected_device in self._USB.list_devices():
-            self.select_device_at(0)
 
 
     def _slow_timer_poll(self):
+        if not self._selected_device in self._USB.list_devices():
+            self.select_device_at(0)
         for dev in self._USB.list_devices():
             dev.update_metadata()
+
+            # TODO this is a hack: just needs to be done once at Device
+            # construction...
+            dev.on_text(self._process_line)
+
         self._update_views()
 
 
-    def _handle_read_tasks(self):
-        """
-        handle 1 read task per function call
-        This function is called many times from update()
-        """
-        task = self._USB.complete_read_task()
-        if not task:
-            return
-
-        if task.ep == PROTOCOL_EP:
-            if (len(task.data) > 0):
-                text = ''.join([chr(c) for c in task.data])
-                lines = text.split('\n')
-                for l in lines:
-                    self._process_line(l, task.device)
-
-    def _process_line(self, line, dev):
+    def _process_line(self, dev, line):
 
         if not line:
             return

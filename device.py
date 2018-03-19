@@ -30,6 +30,14 @@ def _noparams_callback(original_func):
         return original_func()
     return wrapper
 
+def _data_callback(original_func):
+    if not original_func:
+        return None
+
+    def wrapper(*args, **kwargs):
+        return original_func(args[0].data)
+    return wrapper
+
 class Device:
 
     def __init__(self, usb_device, usb_thread,
@@ -51,6 +59,7 @@ class Device:
 
         self._init_vendor_requests()
         self.update_metadata()
+        self._on_text = None
 
     def _init_vendor_requests(self):
         self._auto_vendor_requests = [
@@ -82,6 +91,15 @@ class Device:
     def _set_battery_voltage(self, data):
         self.battery_voltage = parse(data)
 
+    
+    def _handle_protocol_data(self, task):
+        if not self._on_text or not len(task.data):
+            return
+
+        text = ''.join([chr(c) for c in task.data])
+        lines = text.split('\n')
+        for l in lines:
+            self._on_text(task.device, l)
 
 
 
@@ -91,8 +109,13 @@ class Device:
         """Marks this Device as 'configured': the Device is ready for use"""
         self.usb.set_configuration()
         self._configured = True
-        self.read(self._protocol_ep, 512, self._read_timeout, repeat=True)
+        self.read(self._protocol_ep, 512, self._read_timeout, repeat=True,
+                on_complete=self._handle_protocol_data)
 
+
+    def on_text(self, cb):
+        """ cb(Device, line) is called for each line of incoming text """
+        self._on_text = cb
 
     def remove(self):
         """Marks this Device as 'removed': the Device cannot be used anymore"""
@@ -140,11 +163,13 @@ class Device:
 
 
     def vendor_request(self, request):
+
         def fail_cb(task):
             self._blacklist_vendor_request(task.request)
+
         self.control_request(request.req,
             dir="in", length=64,
-            on_complete=request.cb, on_fail=fail_cb,
+            on_complete=_data_callback(request.cb), on_fail=fail_cb,
             max_retries=2, sync=True)
 
     def _blacklist_vendor_request(self, request_id):

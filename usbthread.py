@@ -26,9 +26,9 @@ class USBTask:
     def __lt__(self, other):
         return self.priority < other.priority
 
-    def complete(self, value):
+    def complete(self):
         if self.on_complete:
-            self.on_complete(value)
+            self.on_complete(self)
 
     def fail(self):
         if self.on_fail:
@@ -139,7 +139,7 @@ class USBThread:
     def _complete_task(self, queue):
         if not queue.empty():
             task = queue.get()
-            task.complete(task.length)
+            task.complete()
             return task
         else:
             return
@@ -157,7 +157,7 @@ class USBThread:
         queue = self.controlCompleteQueue
         if not queue.empty():
             task = queue.get()
-            task.complete(task.data)
+            task.complete()
             return task
         else:
             return

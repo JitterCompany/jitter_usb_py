@@ -57,11 +57,6 @@ class USB:
         return self._device_list.all()
 
     
-    # TODO RM
-    def complete_read_task(self):
-        """DEPRECATED"""
-        return self._usb_thread.complete_read_task()
-
     # TODO from own thread
     def poll(self):
         self._update_devicelist()
@@ -72,5 +67,7 @@ class USB:
         while self._usb_thread.complete_control_task():
             pass
         while self._usb_thread.complete_write_task():
+            pass
+        while self._usb_thread.complete_read_task():
             pass
 
