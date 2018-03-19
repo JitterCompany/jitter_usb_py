@@ -59,17 +59,14 @@ class USB:
 
     def complete_read_queue_length(self):
         return self._usb_thread.complete_read_queue_length()
-    
 
-    def complete_write_task(self):
-        return self._usb_thread.complete_write_task()
-
-
-    def complete_control_task(self):
-        return self._usb_thread.complete_control_task()
 
     def poll(self):
         if self._update_server:
             self._update_server.poll()
 
+        while self._usb_thread.complete_control_task():
+            pass
+        while self._usb_thread.complete_write_task():
+            pass
 

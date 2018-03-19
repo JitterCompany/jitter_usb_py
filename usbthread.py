@@ -108,10 +108,10 @@ class USBThread:
         self.writeQueue = queue.Queue()
         self.priorityWriteQueue = queue.Queue()
         self.readQueue = queue.Queue()
+        self.controlQueue = queue.Queue()
         self.readCompleteQueue = queue.Queue()
         self.writeCompleteQueue = queue.Queue()
         self.controlCompleteQueue = queue.Queue()
-        self.controlQueue = queue.Queue()
         self.repeatReader = repeatTasks()
 
         # Heterogeneous queue to mix different types of tasks that 
@@ -200,6 +200,16 @@ class USBThread:
             self._handleReadTask()
             self._handleSyncTasks()
             time.sleep(0.001)
+
+        self.writeQueue.queue.clear()
+        self.priorityWriteQueue.queue.clear()
+        self.readQueue.queue.clear()
+        self.controlQueue.queue.clear()
+        self.readCompleteQueue.queue.clear()
+        self.writeCompleteQueue.queue.clear()
+        self.controlCompleteQueue.queue.clear()
+        self.syncQueue.queue.clear()
+
 
     def submit_control_request(self, task):
         bmRequestType = util.build_request_type(

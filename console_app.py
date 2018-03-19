@@ -57,16 +57,13 @@ class ConsoleApp:
 
     def _timer_poll(self):
         """ Frequently complete control+read tasks """
-        self._USB.complete_control_task()
+
         maxNumTasks = 10
         while maxNumTasks:
             busy = self._handle_read_tasks()
             if not busy:
                 break
             maxNumTasks -= 1
-
-        while self._USB.complete_write_task():
-            pass
 
         self._USB.poll()
         removed, added = self._USB.update_devicelist()
@@ -78,8 +75,6 @@ class ConsoleApp:
 
             for dev in added:
                 dev.read(PROTOCOL_EP, 512, READ_TIMEOUT, repeat=True)
-
-            self._update_views()
 
 
     def _slow_timer_poll(self):
