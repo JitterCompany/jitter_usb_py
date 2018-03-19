@@ -66,17 +66,12 @@ class ConsoleApp:
 
 
     def _slow_timer_poll(self):
-        if not self._selected_device in self._USB.list_devices():
+        all_devices = self._USB.list_devices()
+        if not self._selected_device in all_devices:
             self.select_device_at(0)
 
         self._GUI_events.poll()
-        self._update_views()
-
-
-    def _update_views(self):
-        devices = self._USB.list_devices()
-        self._view.set_devices(devices)
-
+        self._view.set_devices(all_devices)
         self._status.refresh()
 
 

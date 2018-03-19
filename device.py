@@ -1,5 +1,6 @@
 import hashlib
 from collections import namedtuple
+import traceback
 from usbthread import USBReadTask, USBWriteTask, USBControlTask
 from default_commands import *
 
