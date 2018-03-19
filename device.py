@@ -16,10 +16,10 @@ def _hash_serial(serial):
 VENDOR_REQUEST = namedtuple('VendorRequest', ['req', 'cb'])
 
 
-def make_device_builder(usb_thread, protocol_ep):
+def make_device_builder(usb_thread, protocol_ep, read_timeout):
     def default_device_builder(usb_device):
         """ Default device builder: known how to build a Device """
-        return Device(usb_device, usb_thread, protocol_ep)
+        return Device(usb_device, usb_thread, protocol_ep, read_timeout)
     return default_device_builder
     
 def _noparams_callback(original_func):
@@ -32,10 +32,13 @@ def _noparams_callback(original_func):
 
 class Device:
 
-    def __init__(self, usb_device, usb_thread, protocol_ep):
+    def __init__(self, usb_device, usb_thread,
+            protocol_ep, read_timeout):
+        self._configured = False
         self.usb = usb_device
         self._usb_thread = usb_thread
         self._protocol_ep=protocol_ep
+        self._read_timeout = read_timeout
 
         self.full_serial_number = self.usb.serial_number
         self.serial_number = _hash_serial(self.usb.serial_number)
@@ -59,8 +62,6 @@ class Device:
             VENDOR_REQUEST(GET_PROGRAM_STATE,       self._set_program_state),
         ]
 
-    def set_configuration(self):
-        self.usb.set_configuration()
 
     def _set_name(self, data):
         self.name = parse(data)
@@ -85,6 +86,23 @@ class Device:
 
 
     #### public low-level API ####
+
+    def set_configuration(self):
+        """Marks this Device as 'configured': the Device is ready for use"""
+        self.usb.set_configuration()
+        self._configured = True
+        self.read(self._protocol_ep, 512, self._read_timeout, repeat=True)
+
+
+    def remove(self):
+        """Marks this Device as 'removed': the Device cannot be used anymore"""
+
+        # usbthread will stop processing events & cleanup libusb stuff
+        self._usb_thread.remove_device(self)
+
+        # set a flag indicating this device is no longer configured
+        self._configured = False
+
 
     def read(self, ep, length, timeout=10, on_complete=None,
             repeat=False, sync=False):
@@ -187,5 +205,5 @@ class Device:
 
 
     def __str__(self):
-        return '{} ({})'.format(self.serial_number, self.usb._str())
+        return '{}'.format(self.serial_number)
 

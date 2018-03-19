@@ -89,15 +89,19 @@ class repeatTasks:
         if self.find(task.device, task.ep) is None:
             self.tasks.append(task)
 
-    def cancel(self, device, ep):
-        """ Stop repeating all tasks for this device+ep """
-        index = self.find(device, ep)
-        if index is not None:
+    def cancel(self, device, ep=None):
+        """ Stop repeating all tasks for this device [+ep] """
+        while True:
+            index = self.find(device, ep)
+            if index is None:
+                break
+
             del self.tasks[index]
 
-    def find(self, device, ep):
+
+    def find(self, device, ep=None):
         for index, task in enumerate(self.tasks):
-            if task.device == device and task.ep == ep:
+            if task.device == device and (ep is None or task.ep == ep):
                 return index
         return None
 
@@ -159,9 +163,25 @@ class USBThread:
             return
 
 
-    def cancel_autoreads(self, device, ep_list):
-        for ep in ep_list:
-            self.repeatReader.cancel(device, ep)
+    def remove_device(self, device):
+        self.cancel_autoreads(device)
+
+        # try to cleanup libusb stuff (TODO: should this be in usbthread ctxt?)
+        if device.usb:
+            # try to close the device (non-public api)
+            #device._ctx.managed_close()
+
+            # try to close the device (public api (but is it right?))
+            util.dispose_resources(device.usb)
+            device.usb = None
+
+
+    def cancel_autoreads(self, device, ep_list=None):
+        if ep_list:
+            for ep in ep_list:
+                self.repeatReader.cancel(device, ep)
+        else:
+            self.repeatReader.cancel(device)
     
 
     def addReadTask(self, task, new_repeat=False):

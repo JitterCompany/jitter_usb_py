@@ -35,7 +35,9 @@ class ConsoleApp:
         self._terminal = Terminal(self._terminal_cmd_to_current_device)
         self._console = ConsoleView()
         self._debuglog = DebugLog()
-        self._USB = USB(USB_VID, USB_PID, protocol_ep=PROTOCOL_EP,
+        self._USB = USB(USB_VID, USB_PID,
+                protocol_ep=PROTOCOL_EP,
+                read_timeout=READ_TIMEOUT,
                 firmware_update_server_enable=True)
 
         self._console.addView(self._terminal.view, 'Terminal')
@@ -66,23 +68,14 @@ class ConsoleApp:
             maxNumTasks -= 1
 
         self._USB.poll()
-        removed, added = self._USB.update_devicelist()
-        if len(removed) or len(added):
-            for dev in removed:
-                dev.cancel_autoreads([PROTOCOL_EP])
-                if self._selected_device  == dev:
-                    self.select_device_at(0)
-
-            for dev in added:
-                dev.read(PROTOCOL_EP, 512, READ_TIMEOUT, repeat=True)
+        if not self._selected_device in self._USB.list_devices():
+            self.select_device_at(0)
 
 
     def _slow_timer_poll(self):
         for dev in self._USB.list_devices():
             dev.update_metadata()
         self._update_views()
-
-
 
 
     def _handle_read_tasks(self):

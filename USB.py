@@ -8,9 +8,13 @@ class USB:
 
     # pass in a custom device_creator_func if you want to
     # use a custom Device subclass
+
+    # TODO: remove protocol_ep, read_timeout params? they are only used for
+    # the default device_builder
     def __init__(self, USB_VID, USB_PID,
             device_creator_func=None,
             protocol_ep=5,
+            read_timeout=1,
             firmware_update_server_enable=True,
             firmware_update_server_host='localhost',
             firmware_update_server_port=3853):
@@ -19,7 +23,7 @@ class USB:
 
         if device_creator_func is None:
             device_creator_func = make_device_builder(self._usb_thread,
-                    protocol_ep)
+                    protocol_ep, read_timeout=read_timeout)
         self._device_list = DeviceList(USB_VID, USB_PID, device_creator_func)
 
         if firmware_update_server_enable:
@@ -38,7 +42,7 @@ class USB:
         self._usb_thread.quit()
 
 
-    def update_devicelist(self):
+    def _update_devicelist(self):
         """ update list of devices: returns ([obsolete_list], [new_list]) """
 
         obsolete, new = self._device_list.update()
@@ -53,15 +57,15 @@ class USB:
         return self._device_list.all()
 
     
+    # TODO RM
     def complete_read_task(self):
+        """DEPRECATED"""
         return self._usb_thread.complete_read_task()
 
-
-    def complete_read_queue_length(self):
-        return self._usb_thread.complete_read_queue_length()
-
-
+    # TODO from own thread
     def poll(self):
+        self._update_devicelist()
+
         if self._update_server:
             self._update_server.poll()
 

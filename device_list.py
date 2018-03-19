@@ -100,7 +100,7 @@ class DeviceList:
                 print("==== RM device: ====")
                 print(str(dev));
                 obsolete.append(dev)
-                self._close_device(dev.usb)
+                dev.remove()
             else:
                 # still active: keep
                 self._devices.append(dev)
@@ -148,12 +148,4 @@ class DeviceList:
     def _find_devices(self):
         return usb.core.find(idVendor=self._usb_VID, idProduct=self._usb_PID, 
                 find_all=True)
-
-    def _close_device(self, device):
-            # try to close the device (non-public api)
-            #device._ctx.managed_close()
-
-            # try to close the device (public api (but is it right?))
-            usb.util.dispose_resources(device)
-       
 
