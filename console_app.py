@@ -77,14 +77,33 @@ class ConsoleApp:
     def _slow_timer_poll(self):
         if not self._selected_device in self._USB.list_devices():
             self.select_device_at(0)
-        for dev in self._USB.list_devices():
-            dev.update_metadata()
 
         self._update_views()
 
 
-    def _process_line(self, dev, line):
+    def _update_views(self):
+        devices = self._USB.list_devices()
+        self._view.set_devices(devices)
 
+        self._status.refresh()
+
+
+    def quit(self, signal=None, frame=None):
+        if not self._running:
+            return
+        self._running = False
+
+        if signal is not None:
+            self._view.close()
+        self._USB.quit()
+        print("Bye")
+
+
+
+
+    #### GUI <--> USB glue logic: ####
+
+    def _process_line(self, dev, line):
         if not line:
             return
 
@@ -95,11 +114,11 @@ class ConsoleApp:
             self._debuglog.add(dev, line)
 
 
-    def _update_views(self):
-        devices = self._USB.list_devices()
-        self._view.set_devices(devices)
-
-        self._status.refresh()
+    def _terminal_cmd_to_current_device(self, cmd):
+        if not self._selected_device:
+            print("failed to send command: no selected_device")
+            return
+        self._selected_device.send_terminal_command(cmd)
 
 
     def select_device_at(self, index):
@@ -114,24 +133,6 @@ class ConsoleApp:
 
         self._status.select_device(self._selected_device)
         self._debuglog.select_device(self._selected_device)
-
-
-    def quit(self, signal=None, frame=None):
-        if not self._running:
-            return
-        self._running = False
-
-        if signal is not None:
-            self._view.close()
-        self._USB.quit()
-        print("Bye")
-
-
-    def _terminal_cmd_to_current_device(self, cmd):
-        if not self._selected_device:
-            print("failed to send command: no selected_device")
-            return
-        self._selected_device.send_terminal_command(cmd)
 
 
 

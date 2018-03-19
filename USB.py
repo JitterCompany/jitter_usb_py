@@ -22,6 +22,7 @@ class USB:
             firmware_update_server_host='localhost',
             firmware_update_server_port=3853):
         
+        self._i = 0
         self._usb_thread = USBThread()
 
         # inject _usb_thread as parameter each time a Device is created
@@ -52,8 +53,10 @@ class USB:
         return self._device_list.all()
 
     
-    # TODO from own thread
+    # TODO run as a thread, get rid of _i (use timing instead)
     def poll(self):
+        self._i+=1
+
         self._update_devicelist()
 
         if self._update_server:
@@ -65,6 +68,14 @@ class USB:
             pass
         while self._usb_thread.complete_read_task():
             pass
+
+        if self._i > 250:
+            self._i = 0
+            self._slow_poll()
+
+    def _slow_poll(self):
+        for dev in self.list_devices():
+            dev.update_metadata()
 
 
     def _update_devicelist(self):
