@@ -35,7 +35,8 @@ class ConsoleApp:
         self._terminal = Terminal(self._terminal_cmd_to_current_device)
         self._console = ConsoleView()
         self._debuglog = DebugLog()
-        self._USB = USB(USB_VID, USB_PID, protocol_ep=PROTOCOL_EP)
+        self._USB = USB(USB_VID, USB_PID, protocol_ep=PROTOCOL_EP,
+                firmware_update_server_enable=True)
 
         self._console.addView(self._terminal.view, 'Terminal')
         self._console.addView(self._debuglog.view, 'Log')

@@ -27,10 +27,14 @@ class USB:
                     (firmware_update_server_host, firmware_update_server_port),
                     [])
             self._update_server.start()
+        else:
+            self._update_server = None
+
 
 
     def quit(self):
-        self._update_server.stop()
+        if self._update_server:
+            self._update_server.stop()
         self._usb_thread.quit()
 
 
@@ -39,7 +43,8 @@ class USB:
 
         obsolete, new = self._device_list.update()
         if len(obsolete) or len(new):
-            self._update_server.update_device_list(self.list_devices())
+            if self._update_server:
+                self._update_server.update_device_list(self.list_devices())
         return (obsolete, new)
 
 
@@ -64,6 +69,7 @@ class USB:
         return self._usb_thread.complete_control_task()
 
     def poll(self):
-        self._update_server.poll()
+        if self._update_server:
+            self._update_server.poll()
 
 
