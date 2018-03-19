@@ -128,7 +128,7 @@ class ConsoleApp:
 
 def main():
     app = QApplication([])
-    app.setWindowIcon(QtGui.QIcon('assets/blue-icon.png'))
+    #app.setWindowIcon(QtGui.QIcon('assets/blue-icon.png'))
     c = ConsoleApp()
 
     signal.signal(signal.SIGINT, c.quit)
