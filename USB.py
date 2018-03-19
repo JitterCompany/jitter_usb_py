@@ -83,6 +83,7 @@ class USB:
 
         except:
             print(traceback.format_exc())
+            print("USB: caught exception, stopping thread")
 
         # end of thread
         self._running = None

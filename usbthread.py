@@ -6,6 +6,7 @@ import traceback
 import usb.core
 import usb.backend.libusb1 as libusb
 import usb.util as util
+from callback_queue import CallbackQueue
 
 import error
 
@@ -121,6 +122,8 @@ class USBThread:
         # need executed synchronously
         self.syncQueue = queue.Queue()
        
+        self._thread_events = CallbackQueue()
+
         self._running = True
 
         timerThread = threading.Thread(target=self.poll)
@@ -163,6 +166,11 @@ class USBThread:
 
 
     def remove_device(self, device):
+        self._thread_events.wrap(self._remove_device)(device)
+
+
+    def _remove_device(self, device):
+        """Note: this should run in the usb thread (?)"""
         self.cancel_autoreads(device)
 
         # try to cleanup libusb stuff (TODO: should this be in usbthread ctxt?)
@@ -212,6 +220,7 @@ class USBThread:
 
     def poll(self):
         while(self._running):
+            self._thread_events.poll()
             self._handleControlTask()
             self._handleWriteTask()
             self._handleReadTask()

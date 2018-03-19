@@ -21,7 +21,12 @@ else:
     hotplug = None
 
 def _device_in_list(dev, usb_dev_list):
+    if not dev:
+        return False
+
     for d in usb_dev_list:
+        if not d:
+            continue
         if (dev.bus == d.bus
                 and dev.address == d.address
                 and dev.idVendor == d.idVendor
