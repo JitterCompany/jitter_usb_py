@@ -97,6 +97,12 @@ class Device:
             self._on_text(task.device, l)
 
 
+    def _blacklist_vendor_request(self, request_id):
+        for req in self._auto_vendor_requests:
+            if req.req == request_id:
+                self._auto_vendor_requests.remove(req)
+
+
 
     #### public low-level API ####
 
@@ -112,10 +118,6 @@ class Device:
             except:
                 print(traceback.format_exc())
 
-
-    def on_text(self, cb):
-        """ cb(Device, line) is called for each line of incoming text """
-        self._on_text = cb
 
     def remove(self):
         """Marks this Device as 'removed': the Device cannot be used anymore"""
@@ -172,11 +174,6 @@ class Device:
             on_complete=_data_callback(request.cb), on_fail=fail_cb,
             max_retries=2, sync=True)
 
-    def _blacklist_vendor_request(self, request_id):
-        for req in self._auto_vendor_requests:
-            if req.req == request_id:
-                self._auto_vendor_requests.remove(req)
-
 
     def update_metadata(self):
         for req in self._auto_vendor_requests:
@@ -189,6 +186,10 @@ class Device:
     
     def send_terminal_command(self, cmd):
         self.control_request(TERMINAL_CMD, data=cmd)
+
+    def on_text(self, cb):
+        """ cb(Device, line) is called for each line of incoming text """
+        self._on_text = cb
 
     def stop(self, on_complete=None):
         """ Send a stop command. Optional callback has no params """
