@@ -14,6 +14,7 @@ from terminal import Terminal
 from debuglog import DebugLog
 from console import ConsoleView
 from USB import USB, default_device_builder
+from callback_queue import CallbackQueue
 
 
 #### Settings ####
@@ -22,7 +23,7 @@ USB_PID                 = 0x0021
 
 PROTOCOL_EP             = 5
 READ_TIMEOUT            = 1
-POLL_INTERVAL_SLOW_MS   = 1000
+POLL_INTERVAL_SLOW_MS   = 200
 TERMINAL_PREFIX         = "Info: terminal:"
 
 
@@ -35,6 +36,7 @@ class ConsoleApp:
         self._terminal = Terminal(self._terminal_cmd_to_current_device)
         self._console = ConsoleView()
         self._debuglog = DebugLog()
+        self._GUI_events = CallbackQueue()
         self._USB = USB(USB_VID, USB_PID,
                 device_creator_func=self._device_builder,
                 firmware_update_server_enable=True)
@@ -57,8 +59,9 @@ class ConsoleApp:
         device = default_device_builder(*args, **kwargs,
                 protocol_ep=PROTOCOL_EP, read_timeout=READ_TIMEOUT)
 
-        # subscribe on text output
-        device.on_text(self._process_line)
+        # subscribe on text output: process_line called from GUI thread
+        cb = self._GUI_events.wrap(self._process_line)
+        device.on_text(cb)
         return device
 
 
@@ -66,6 +69,7 @@ class ConsoleApp:
         if not self._selected_device in self._USB.list_devices():
             self.select_device_at(0)
 
+        self._GUI_events.poll()
         self._update_views()
 
 
@@ -91,7 +95,9 @@ class ConsoleApp:
 
     #### GUI <--> USB glue logic: ####
 
+
     def _process_line(self, dev, line):
+        """process a line of text from USB. Note: call from GUI thread"""
         if not line:
             return
 

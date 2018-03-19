@@ -101,10 +101,15 @@ class Device:
 
     def set_configuration(self):
         """Marks this Device as 'configured': the Device is ready for use"""
-        self.usb.set_configuration()
-        self._configured = True
-        self.read(self._protocol_ep, 512, self._read_timeout, repeat=True,
-                on_complete=self._handle_protocol_data)
+        if not self._configured:
+            try:
+                self.usb.set_configuration()
+                self._configured = True
+                self.read(self._protocol_ep, 512, self._read_timeout,
+                        repeat=True,
+                        on_complete=self._handle_protocol_data)
+            except:
+                print(traceback.format_exc())
 
 
     def on_text(self, cb):

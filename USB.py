@@ -3,6 +3,7 @@ from device import Device
 from device_list import DeviceList
 from update_server import FirmwareUpdateServer
 from threading import Thread
+import traceback
 import time
 
 
@@ -52,8 +53,12 @@ class USB:
 
     def quit(self):
         self._running = False
+        start_quit = time.time()
         while self._running is not None:
-            pass
+            if time.time() - start_quit > 2:
+                print("\rUSB: thread crashed, force quit")
+                break
+
         if self._update_server:
             self._update_server.stop()
         self._usb_thread.quit()
@@ -67,27 +72,33 @@ class USB:
     # This runs in a separate thread
     def _run(self):
         last_slow = time.time()
-        while(self._running):
+        try:
+            while(self._running):
+                self._poll()
+                time.sleep(POLL_INTERVAL_FAST_SEC)
 
-            time.sleep(POLL_INTERVAL_FAST_SEC)
-            self._update_devicelist()
+                if time.time() - last_slow > POLL_INTERVAL_SLOW_SEC:
+                    last_slow = time.time()
+                    self._slow_poll()
 
-            if self._update_server:
-                self._update_server.poll()
-
-            while self._usb_thread.complete_control_task():
-                pass
-            while self._usb_thread.complete_write_task():
-                pass
-            while self._usb_thread.complete_read_task():
-                pass
-
-            if time.time() - last_slow > POLL_INTERVAL_SLOW_SEC:
-                last_slow = time.time()
-                self._slow_poll()
+        except:
+            print(traceback.format_exc())
 
         # end of thread
         self._running = None
+
+    def _poll(self):
+        self._update_devicelist()
+
+        if self._update_server:
+            self._update_server.poll()
+
+        while self._usb_thread.complete_control_task():
+            pass
+        while self._usb_thread.complete_write_task():
+            pass
+        while self._usb_thread.complete_read_task():
+            pass
 
 
     def _slow_poll(self):
