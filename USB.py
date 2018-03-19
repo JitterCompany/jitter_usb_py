@@ -18,8 +18,6 @@ class USB:
     # the default device_builder
     def __init__(self, USB_VID, USB_PID,
             device_creator_func,
-            protocol_ep=5,
-            read_timeout=1,
             firmware_update_server_enable=True,
             firmware_update_server_host='localhost',
             firmware_update_server_port=3853):

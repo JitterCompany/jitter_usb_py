@@ -38,8 +38,6 @@ class ConsoleApp:
         self._debuglog = DebugLog()
         self._USB = USB(USB_VID, USB_PID,
                 device_creator_func=self._device_builder,
-                protocol_ep=PROTOCOL_EP,
-                read_timeout=READ_TIMEOUT,
                 firmware_update_server_enable=True)
 
         self._console.addView(self._terminal.view, 'Terminal')
