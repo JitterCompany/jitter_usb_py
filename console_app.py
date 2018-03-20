@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import faulthandler
+
 import os
 import signal
 import sys
@@ -127,6 +129,7 @@ class ConsoleApp:
 
 
 def main():
+    faulthandler.enable()
     app = QApplication([])
     #app.setWindowIcon(QtGui.QIcon('assets/blue-icon.png'))
     c = ConsoleApp()
