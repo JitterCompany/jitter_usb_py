@@ -1,26 +1,26 @@
 from collections import deque
-from pyqtgraph.Qt import QtGui
+from PyQt5 import QtGui, QtWidgets
 
 class Terminal:
 
     def __init__(self, send_cmd_func):
-        """ TerminalController handles text rendering and command 
-            dispatching. 
+        """ TerminalController handles text rendering and command
+            dispatching.
         """
         self._send_cmd_func = send_cmd_func
         self.terminal_list = deque(maxlen=40)
         self.view = TerminalView(self)
 
     def send_cmd(self, cmd):
-        """ Send current command and show command 
+        """ Send current command and show command
             in text view.
         """
 
         # allow typing of '^z' to send ctrl-Z char
-        cmd = cmd.replace("^z",'\x1A')
+        cmd = cmd.replace("^z", '\x1A')
         self._send_cmd_func(cmd + '\0')
-        self.add('>> ' + cmd + '\n');
-        
+        self.add('>> ' + cmd + '\n')
+
     def update(self):
         """ Rerender terminal text view. """
         self.view.set_text(''.join(self.terminal_list))
@@ -36,36 +36,36 @@ class Terminal:
         self.terminal_list.clear()
         self.update()
 
-class TerminalView(QtGui.QWidget):
+class TerminalView(QtWidgets.QWidget):
 
     def __init__(self, controller):
-        """ TerminalView is a QWidget to display and enter 
-            terminal commands
+        """
+        TerminalView is a QWidget to display and enter terminal commands
         """
         super().__init__()
         self.controller = controller
 
-        l = self.layout()
+        l = self._layout()
         self.setLayout(l)
         self.text = ''
 
-    def layout(self):
-        layout = QtGui.QVBoxLayout()
+    def _layout(self):
+        layout = QtWidgets.QVBoxLayout()
 
-        self.textview = QtGui.QTextEdit()
+        self.textview = QtWidgets.QTextEdit()
         self.textview.setReadOnly(True)
         layout.addWidget(self.textview)
 
-        inputlayout = QtGui.QHBoxLayout()
-        self.inputfield = QtGui.QLineEdit()
+        inputlayout = QtWidgets.QHBoxLayout()
+        self.inputfield = QtWidgets.QLineEdit()
         inputlayout.addWidget(self.inputfield)
-        sendbtn = QtGui.QPushButton("Enter")
+        sendbtn = QtWidgets.QPushButton("Enter")
         sendbtn.setShortcut('return')
         sendbtn.clicked.connect(
-                lambda x: self.controller.send_cmd(self.inputfield.text()))
+            lambda x: self.controller.send_cmd(self.inputfield.text()))
         inputlayout.addWidget(sendbtn)
 
-        clearbtn = QtGui.QPushButton("Clear")
+        clearbtn = QtWidgets.QPushButton("Clear")
         clearbtn.setShortcut('META+L')
         clearbtn.clicked.connect(self.controller.clear)
         inputlayout.addWidget(clearbtn)
@@ -74,7 +74,6 @@ class TerminalView(QtGui.QWidget):
 
     def set_text(self, text):
         if self.text != text:
-            self.text = text;
+            self.text = text
             self.textview.setPlainText(text)
             self.textview.moveCursor(QtGui.QTextCursor.End)
-

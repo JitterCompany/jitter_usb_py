@@ -1,7 +1,7 @@
-from pyqtgraph.Qt import QtGui
 from collections import defaultdict, deque
 from functools import partial
 
+from PyQt5 import QtWidgets, QtGui
 
 class DebugLog:
 
@@ -15,7 +15,7 @@ class DebugLog:
         """ Notify debuglog of the currently selected device """
         if dev:
             self.selectedKey = dev.serial_number
-        else: 
+        else:
             self.selectedKey = None
 
         self.update()
@@ -42,24 +42,24 @@ class DebugLog:
             self.data[self.selectedKey].clear()
             self.update()
 
-class DebugLogView(QtGui.QWidget):
+class DebugLogView(QtWidgets.QWidget):
 
     def __init__(self, controller):
         super().__init__()
         self.controller = controller
-        l = self.layout()
+        l = self._layout()
         self.setLayout(l)
         self.text = ''
 
-    def layout(self):
-        layout = QtGui.QVBoxLayout()
-        self.textview = QtGui.QTextEdit()
+    def _layout(self):
+        layout = QtWidgets.QVBoxLayout()
+        self.textview = QtWidgets.QTextEdit()
         self.textview.setReadOnly(True)
         layout.addWidget(self.textview)
 
-        inputlayout = QtGui.QHBoxLayout()
+        inputlayout = QtWidgets.QHBoxLayout()
         inputlayout.addStretch(1)
-        clearbtn = QtGui.QPushButton("Clear")
+        clearbtn = QtWidgets.QPushButton("Clear")
         clearbtn.setShortcut('META+L')
         clearbtn.clicked.connect(self.controller.clear)
         inputlayout.addWidget(clearbtn)
@@ -69,7 +69,6 @@ class DebugLogView(QtGui.QWidget):
 
     def set_text(self, text):
         if self.text != text:
-            self.text = text;
+            self.text = text
             self.textview.setPlainText(text)
             self.textview.moveCursor(QtGui.QTextCursor.End)
-
