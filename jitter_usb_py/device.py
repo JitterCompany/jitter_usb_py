@@ -1,8 +1,9 @@
 import hashlib
-from collections import namedtuple
 import traceback
-from usbthread import USBReadTask, USBWriteTask, USBControlTask
-from default_commands import *
+from collections import namedtuple
+
+from .usbthread import USBReadTask, USBWriteTask, USBControlTask
+from .default_commands import *
 
 def parse(data):
     if data and len(data):

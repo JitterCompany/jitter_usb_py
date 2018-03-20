@@ -6,9 +6,9 @@ import traceback
 import usb.core
 import usb.backend.libusb1 as libusb
 import usb.util as util
-from callback_queue import CallbackQueue
+from .callback_queue import CallbackQueue
 
-import error
+from .error import print_error
 
 
 class USBTask:
@@ -321,7 +321,7 @@ class USBThread:
                     task.fail()
 
                 elif err.backend_error_code == libusb.LIBUSB_ERROR_NO_DEVICE:
-                    error.print_error("No Such Device:" + str(task.device))
+                    print_error("No Such Device:" + str(task.device))
                     task.fail()
 
                 else:
@@ -332,7 +332,7 @@ class USBThread:
 
 
             except Exception:
-                error.print_error(traceback.format_exc())
+                print_error(traceback.format_exc())
                 task.fail()
             
             for i in range(10):
@@ -376,14 +376,14 @@ class USBThread:
                     task.fail()
 
             elif err.backend_error_code == libusb.LIBUSB_ERROR_NO_DEVICE:
-                error.print_error("No Such Device:" + str(task.device))
+                print_error("No Such Device:" + str(task.device))
                 task.fail()
             else:
-                error.print_error("(unexpected) " + traceback.format_exc())
+                print_error("(unexpected) " + traceback.format_exc())
                 task.fail()
 
         except Exception:
-            error.print_error(traceback.format_exc())
+            print_error(traceback.format_exc())
             task.fail()
 
     def _handleControlTask(self):
@@ -417,7 +417,7 @@ class USBThread:
                 task.fail()
 
             elif err.backend_error_code == libusb.LIBUSB_ERROR_NO_DEVICE:
-                error.print_error("No Such Device:" + str(task.device))
+                print_error("No Such Device:" + str(task.device))
                 task.fail()
             else:
                 print(traceback.format_exc())
@@ -454,7 +454,7 @@ class USBThread:
                 task.fail()
 
             elif err.backend_error_code == libusb.LIBUSB_ERROR_NO_DEVICE:
-                error.print_error("No Such Device:" + str(task.device))
+                print_error("No Such Device:" + str(task.device))
                 task.fail()
             else:
                 print(traceback.format_exc())

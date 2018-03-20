@@ -1,10 +1,11 @@
-from usbthread import USBThread
-from device import Device
-from device_list import DeviceList
-from update_server import FirmwareUpdateServer
-from threading import Thread
 import traceback
 import time
+from threading import Thread
+
+from .usbthread import USBThread
+from .device import Device
+from .device_list import DeviceList
+from .update_server import FirmwareUpdateServer
 
 
 POLL_INTERVAL_FAST_SEC = 0.1

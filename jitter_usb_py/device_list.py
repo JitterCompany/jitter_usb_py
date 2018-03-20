@@ -4,7 +4,7 @@ import time
 
 import usb.core
 
-from device import Device
+from .device import Device
 
 #NOTE: hotplug support is avaliable in pyusb jitter-1.1
 if usb.__version__.startswith('jitter'):
@@ -16,6 +16,7 @@ else:
         print('\033[93m' + "WARNING: no hotplug support!")
         print('\033[93m' + "WARNING: this requires pyusb > jitter-1.1"
                 + ", see JitterCompany/pyusb.git")
+        print('\033[93m' + 'Current version: ' + usb.__version__)
         print('\033[0m')
     hotplug = None
 
