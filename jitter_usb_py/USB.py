@@ -24,7 +24,7 @@ def _differ_lists(l1, l2):
     ----------
     l1, l2: lists
 
-    Returns: 
+    Returns:
         True if different
     """
     is_different = False
@@ -40,29 +40,30 @@ def _differ_lists(l1, l2):
 
 
 class USB:
+    """
+    pass in a custom device_creator_func, for example if you want to
+    use a custom Device subclass or add Device init code
+    """
 
-    # pass in a custom device_creator_func, for example if you want to
-    # use a custom Device subclass or add Device init code
     def __init__(self, USB_VID, USB_PID,
-            device_creator_func,
-            firmware_update_server_enable=True,
-            firmware_update_server_host='localhost',
-            firmware_update_server_port=3853):
-        
+                 device_creator_func,
+                 firmware_update_server_enable=True,
+                 firmware_update_server_host='localhost',
+                 firmware_update_server_port=3853):
+
         self._usb_thread = USBThread()
 
         # inject _usb_thread as parameter each time a Device is created
-        def device_creator_with_thread(*args, **kwargs):
+        def _device_creator_with_thread(*args, **kwargs):
             return device_creator_func(*args, **kwargs,
-                    usb_thread=self._usb_thread)
+                                       usb_thread=self._usb_thread)
 
         self._device_list = DeviceList(USB_VID, USB_PID,
-                device_creator_with_thread)
+                                       _device_creator_with_thread)
 
         if firmware_update_server_enable:
             self._update_server = FirmwareUpdateServer(
-                    (firmware_update_server_host, firmware_update_server_port),
-                    [])
+                (firmware_update_server_host, firmware_update_server_port), [])
             self._update_server.start()
         else:
             self._update_server = None
@@ -71,8 +72,7 @@ class USB:
         self._running = True
         self._event_thread = Thread(target=self._run)
         self._event_thread.deamon = True
-        self._event_thread.start();
-
+        self._event_thread.start()
 
     def quit(self):
         self._running = False
@@ -97,7 +97,7 @@ class USB:
     def list_devices(self, prev_list=None):
         """
         get a list of all devices
-        
+
         Parameters
         ----------
         prev_list: list of devices, optional
@@ -105,7 +105,7 @@ class USB:
             to this function, change detection will be performed
             and an extra return value will indicate whether the
             device list differs from the list returned
-        
+
         Returns
         -------
         device_list: list of devices
@@ -118,15 +118,14 @@ class USB:
 
         if prev_list is not None:
             return (new_list, _differ_lists(prev_list, new_list))
-        else:
-            return new_list
 
-    
+        return new_list
+
     # This runs in a separate thread
     def _run(self):
         last_slow = time.time()
         try:
-            while(self._running):
+            while self._running:
                 self._poll()
                 time.sleep(POLL_INTERVAL_FAST_SEC)
 
@@ -134,7 +133,7 @@ class USB:
                     last_slow = time.time()
                     self._slow_poll()
 
-        except:
+        except Exception:
             print(traceback.format_exc())
             print("USB: caught exception, stopping thread")
 
@@ -164,8 +163,7 @@ class USB:
         """ update list of devices: returns ([obsolete_list], [new_list]) """
 
         obsolete, new = self._device_list.update()
-        if len(obsolete) or len(new):
+        if obsolete or new:
             if self._update_server:
                 self._update_server.update_device_list(self.list_devices())
         return (obsolete, new)
-

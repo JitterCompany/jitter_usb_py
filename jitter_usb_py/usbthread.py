@@ -14,7 +14,7 @@ from .error import print_error
 class USBTask:
 
     def __init__(self, ep, timeout, device, on_complete, on_fail, repeat,
-            max_retries=3):
+                 max_retries=3):
         self.ep = ep
         self.timeout = timeout
         self.device = device
@@ -22,9 +22,6 @@ class USBTask:
         self.on_fail = on_fail
         self.repeat = repeat
         self.retries = max_retries  # only has effect if on sync queue
-
-    def __lt__(self, other):
-        return self.priority < other.priority
 
     def complete(self):
         if self.on_complete:
@@ -38,10 +35,10 @@ class USBTask:
 class USBControlTask(USBTask):
 
     def __init__(self, device, request, ep=0, dir='out', value=0, index=0,
-            data=None, length=None, timeout=10,
-            on_complete=None, on_fail=None, max_retries=3):
+                 data=None, length=None, timeout=10,
+                 on_complete=None, on_fail=None, max_retries=3):
         super().__init__(ep, timeout, device, on_complete, on_fail=on_fail,
-                max_retries=max_retries, repeat=False)
+                         max_retries=max_retries, repeat=False)
         self.request = request
         self.data = data
         self.value = value
@@ -52,18 +49,18 @@ class USBControlTask(USBTask):
 class USBReadTask(USBTask):
 
     def __init__(self, device, ep, length, timeout=10,
-            on_complete=None, on_fail=None, repeat=False):
+                 on_complete=None, on_fail=None, repeat=False):
         super().__init__(ep, timeout, device, on_complete, on_fail=on_fail,
-                repeat=repeat)
+                         repeat=repeat)
         self.length = length
         self.data = []
 
 class USBWriteTask(USBTask):
 
     def __init__(self, device, ep, data, timeout=10,
-            on_complete=None, on_fail=None, max_retries=3):
+                 on_complete=None, on_fail=None, max_retries=3):
         super().__init__(ep, timeout, device, on_complete, on_fail=on_fail,
-                max_retries=max_retries, repeat=False)
+                         max_retries=max_retries, repeat=False)
         self.data = data
         self.length = len(data)
 
@@ -118,17 +115,17 @@ class USBThread:
         self.controlCompleteQueue = queue.Queue()
         self.repeatReader = repeatTasks()
 
-        # Heterogeneous queue to mix different types of tasks that 
+        # Heterogeneous queue to mix different types of tasks that
         # need executed synchronously
         self.syncQueue = queue.Queue()
-       
+
         self._thread_events = CallbackQueue()
 
         self._running = True
 
         timerThread = threading.Thread(target=self.poll)
         timerThread.deamon = True
-        timerThread.start();
+        timerThread.start()
 
 # DEPRECATED for now. if you need this kind of functionality,
 # it should be implemented in Device, to avoid clearing writes to other
@@ -138,9 +135,9 @@ class USBThread:
 #        self.priorityWriteQueue.queue.clear()
 #        self.writeQueue.queue.clear()
 
-    def _complete_task(self, queue):
-        if not queue.empty():
-            task = queue.get()
+    def _complete_task(self, q):
+        if not q.empty():
+            task = q.get()
             task.complete()
             return task
         else:
@@ -156,9 +153,9 @@ class USBThread:
         return self._complete_task(self.writeCompleteQueue)
 
     def complete_control_task(self):
-        queue = self.controlCompleteQueue
-        if not queue.empty():
-            task = queue.get()
+        q = self.controlCompleteQueue
+        if not q.empty():
+            task = q.get()
             task.complete()
             return task
         else:
@@ -192,7 +189,7 @@ class USBThread:
                 self.repeatReader.cancel(device, ep)
         else:
             self.repeatReader.cancel(device)
-    
+
 
     def addReadTask(self, task, new_repeat=False):
         self.readQueue.put(task)
@@ -217,17 +214,17 @@ class USBThread:
 
     def addSyncronousTask(self, task):
         self.syncQueue.put(task)
-    
+
     def quit(self):
         self._running = False
-        for i in range (50):
+        for _i in range(50):
             if self._running is None:
                 break
             time.sleep(0.1)
 
 
     def poll(self):
-        while(self._running):
+        while self._running:
             self._thread_events.poll()
             self._handleControlTask()
             self._handleWriteTask()
@@ -251,21 +248,20 @@ class USBThread:
 
     def submit_control_request(self, task):
         bmRequestType = util.build_request_type(
-                    util.CTRL_OUT if task.dir == 'out' else util.CTRL_IN,
-                    util.CTRL_TYPE_VENDOR,
-                    util.CTRL_RECIPIENT_DEVICE)
+            util.CTRL_OUT if task.dir == 'out' else util.CTRL_IN,
+            util.CTRL_TYPE_VENDOR,
+            util.CTRL_RECIPIENT_DEVICE)
         ret = task.device.usb.ctrl_transfer(
-            bmRequestType = bmRequestType,
-            bRequest = task.request,
-            wValue = task.value,
-            wIndex = task.index,
-            data_or_wLength = task.length if task.length else task.data)
+            bmRequestType=bmRequestType,
+            bRequest=task.request,
+            wValue=task.value,
+            wIndex=task.index,
+            data_or_wLength=task.length if task.length else task.data)
         if ret:
             task.data = ret
-        
+
         if task.on_complete:
             self.controlCompleteQueue.put(task)
-            
 
     def _handleSyncTasks(self):
         #handle all sync tasks in queue
@@ -274,7 +270,7 @@ class USBThread:
         while True:
             try:
                 if retryTask and retryTask.retries:
-                    retryTask.retries-= 1
+                    retryTask.retries -= 1
                     task = retryTask
                     retryTask = None
                     time.sleep(0.1)
@@ -283,18 +279,17 @@ class USBThread:
                     # get next task
                     task = self.syncQueue.get(block=False)
 
-                if (isinstance(task, USBControlTask)):
+                if isinstance(task, USBControlTask):
                     self.submit_control_request(task)
-                elif (isinstance(task, USBWriteTask)):
+                elif isinstance(task, USBWriteTask):
                     l = 0
                     while l != len(task.data):
                         task.data = task.data[l:]
-                        l = task.device.usb.write(task.ep,
-                                task.data, task.timeout)
+                        l = task.device.usb.write(task.ep, task.data, task.timeout)
                 else:
                     print('Only Write and Control tasks are supported')
                     task.fail()
-                    
+
             except queue.Empty:
                 break
 
@@ -312,7 +307,7 @@ class USBThread:
                         # only print the warning if no failure handler exists
                         if not task.on_fail:
                             print("Warning: USB stall, retrying task "
-                            "(retries left:{})".format(task.retries))
+                                  "(retries left:{})".format(task.retries))
                         retryTask = task
 
 
@@ -325,28 +320,23 @@ class USBThread:
                     task.fail()
 
                 else:
-                    print("Warning: unknown USB IO error code",
-                            err.backend_error_code)
+                    print("Warning: unknown USB IO error code", err.backend_error_code)
                     print(traceback.format_exc())
                     task.fail()
-
 
             except Exception:
                 print_error(traceback.format_exc())
                 task.fail()
-            
-            for i in range(10):
-                self._handleReadTask()
-            
-            
 
-   
+            for _i in range(10):
+                self._handleReadTask()
+
     def _handleReadTask(self):
         try:
             task = self.readQueue.get(block=False)
 
             task.data = task.device.usb.read(task.ep | 0x80,
-                    task.length, task.timeout)
+                                             task.length, task.timeout)
             if task:
  #               print("read task for ep:", task.ep)
                 self.readCompleteQueue.put(task)
@@ -355,8 +345,8 @@ class USBThread:
 
                 # Note: copy task to avoid re-using the buffer
                 self.addReadTask(USBReadTask(task.device, task.ep,
-                    task.length, timeout=task.timeout,
-                    on_complete=task.on_complete, repeat=task.repeat))
+                                             task.length, timeout=task.timeout,
+                                             on_complete=task.on_complete, repeat=task.repeat))
 
         except queue.Empty:
             pass
@@ -365,11 +355,10 @@ class USBThread:
                     or err.backend_error_code == libusb.LIBUSB_ERROR_IO):
 
                 if task.repeat:
-                    
                     # Note: copy task to avoid re-using the buffer
                     self.addReadTask(USBReadTask(task.device, task.ep,
-                        task.length, timeout=task.timeout,
-                        on_complete=task.on_complete, repeat=task.repeat))
+                                                 task.length, timeout=task.timeout,
+                                                 on_complete=task.on_complete, repeat=task.repeat))
 
                 if err.backend_error_code == libusb.LIBUSB_ERROR_IO:
                     print("Warning: USB IO error on read")
@@ -390,7 +379,7 @@ class USBThread:
         try:
             task = self.controlQueue.get(block=False)
             self.submit_control_request(task)
-            
+
         except queue.Empty:
             pass
         except usb.core.USBError as err:
@@ -407,8 +396,8 @@ class USBThread:
                     # only print the warning if no failure handler exists
                     if not task.on_fail:
                         print("Warning: USB stall, retrying ctrl task "
-                        "(retries left:{})".format(task.retries))
-                    task.retries-= 1
+                              "(retries left:{})".format(task.retries))
+                    task.retries -= 1
                     self.controlQueue.put(task)
 
 
@@ -433,7 +422,6 @@ class USBThread:
             q = self.priorityWriteQueue
         try:
             task = q.get(block=False)
-
 
             l = task.device.usb.write(task.ep, task.data, task.timeout)
             if l == len(task.data):
@@ -462,4 +450,3 @@ class USBThread:
         except Exception:
             print(traceback.format_exc())
             task.fail()
-
