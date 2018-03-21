@@ -15,8 +15,8 @@ from status_widget import StatusWidget
 from terminal import Terminal
 from debuglog import DebugLog
 from console import ConsoleView
-from USB import USB, default_device_builder
-from callback_queue import CallbackQueue
+from jitter_usb_py import USB, default_device_builder
+from jitter_usb_py import CallbackQueue
 
 
 #### Settings ####
