@@ -15,7 +15,29 @@ POLL_INTERVAL_SLOW_SEC = 1.5
 def default_device_builder(*args, **kwargs):
     """ Default device builder: builds a Device instance when called """
     return Device(*args, **kwargs)
-    
+
+
+def _differ_lists(l1, l2):
+    """ Compare two lists of objects
+
+    Parameters
+    ----------
+    l1, l2: lists
+
+    Returns: 
+        True if different
+    """
+    is_different = False
+    l2_copy = list(l2)
+    for dev in l1:
+        if not dev in l2_copy:
+            is_different = True
+            break
+        else:
+            l2_copy.remove(dev)
+
+    return is_different or l2_copy
+
 
 class USB:
 
@@ -72,9 +94,32 @@ class USB:
             dev.remove()
 
 
-    def list_devices(self):
-        """ get a list of all devices """
-        return self._device_list.all()
+    def list_devices(self, prev_list=None):
+        """
+        get a list of all devices
+        
+        Parameters
+        ----------
+        prev_list: list of devices, optional
+            If a (previous) list of devices is passed
+            to this function, change detection will be performed
+            and an extra return value will indicate whether the
+            device list differs from the list returned
+        
+        Returns
+        -------
+        device_list: list of devices
+            All devices currently connected
+        changed: boolean, optional
+            True if device_list differs from prev_list.
+            Only returned if prev_list is not None
+        """
+        new_list = self._device_list.all()
+
+        if prev_list is not None:
+            return (new_list, _differ_lists(prev_list, new_list))
+        else:
+            return new_list
 
     
     # This runs in a separate thread
