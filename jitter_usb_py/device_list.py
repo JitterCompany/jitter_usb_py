@@ -37,14 +37,14 @@ def _device_in_list(dev, usb_dev_list):
 class DeviceList:
 
     def __init__(self, vendor_id, product_id, device_creator_func):
-        
+
         self._device_create = device_creator_func
         self._devices = []
         self._usb_VID = vendor_id
         self._usb_PID = product_id
 
-        self.hotplugEventQueue = queue.Queue() 
-        
+        self.hotplugEventQueue = queue.Queue()
+
         if hotplug is not None:
             event_mask = (hotplug.LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED
                     | hotplug.LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT)
@@ -74,13 +74,13 @@ class DeviceList:
 
     def _has_changed(self):
         """ Returns True if device list has changed """
-        
+
         if not self.first_time:
             if self.hotplugEventQueue.empty():
                 return False
 
         self.first_time = False
-        
+
         # empty event queue
         while not self.hotplugEventQueue.empty():
             try:
@@ -118,7 +118,7 @@ class DeviceList:
             else:
                 # still active: keep
                 self._devices.append(dev)
-      
+
         # configure new devices
         for usb_dev in found_usb_devices:
             if not _device_in_list(usb_dev, [d.usb for d in prev_devices]):
@@ -132,7 +132,7 @@ class DeviceList:
                 new.append(dev)
                 self._devices.append(dev)
                 dev.set_configuration()
-        
+
         return (obsolete, new)
 
     def _usb_handle_events(self):
@@ -151,7 +151,7 @@ class DeviceList:
             else:
                 self.hotplugEventQueue.put(None)
                 time.sleep(2.0)
-        
+
         print("DeviceListThread: exit")
         self._running = None
 
@@ -162,6 +162,6 @@ class DeviceList:
         return 0
 
     def _find_devices(self):
-        return usb.core.find(idVendor=self._usb_VID, idProduct=self._usb_PID, 
+        return usb.core.find(idVendor=self._usb_VID, idProduct=self._usb_PID,
                 find_all=True)
 

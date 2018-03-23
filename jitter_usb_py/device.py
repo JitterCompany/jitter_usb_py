@@ -8,8 +8,7 @@ from .default_commands import *
 def parse(data):
     if data and len(data):
         return ''.join([chr(c) for c in data])
-    else: 
-        return ''
+    return ''
 
 def _hash_serial(serial):
     raw = hashlib.sha1(bytes(serial, 'utf-8')).hexdigest()[:12]
@@ -71,7 +70,7 @@ class Device:
     def _set_name(self, data):
         self.name = parse(data)
 
-    def _set_fw_version(self, data):       
+    def _set_fw_version(self, data):
         self.fw_version = parse(data)
 
     def _set_bootloader_version(self, data):
@@ -87,15 +86,16 @@ class Device:
     def _set_battery_voltage(self, data):
         self.battery_voltage = parse(data)
 
-    
+
     def _handle_protocol_data(self, task):
         if not self._on_text or not len(task.data):
             return
 
         text = ''.join([chr(c) for c in task.data])
         lines = text.split('\n')
-        for l in lines:
-            self._on_text(task.device, l)
+        if self._on_text:
+            for l in lines:
+                self._on_text(self, l)
 
 
     def _blacklist_vendor_request(self, request_id):
@@ -184,7 +184,7 @@ class Device:
 
 
     #### public high-level API ####
-    
+
     def send_terminal_command(self, cmd):
         self.control_request(TERMINAL_CMD, data=cmd)
 

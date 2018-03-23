@@ -79,7 +79,7 @@ class USB:
         start_quit = time.time()
 
         while self._running is not None:
-            if time.time() - start_quit > 2:
+            if time.time() - start_quit > 4:
                 print("\rUSB: thread crashed, force quit")
                 break
 
