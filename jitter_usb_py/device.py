@@ -45,46 +45,56 @@ class Device:
 
         self.full_serial_number = self.usb.serial_number
         self.serial_number = _hash_serial(self.usb.serial_number)
-        self.name = ''
-        self.fw_version = ''
-        self.bootloader_version = ''
-        self.hardware_version = ''
-        self.battery_voltage = '-2'
-        self.program_state = ''
+
+        # these are publicly accessible via self.<propertyname>
+        # and are auto-updated by USB vendor-requests.
+        self._properties  = {
+            'name'                  : '',
+            'fw_version'            : '',
+            'bootloader_version'    : '',
+            'hardware_version'      : '',
+            'battery_voltage'       : '',
+            'program_state'         : '',
+        }
+        self._on_change = {}
 
         self._init_vendor_requests()
         self.update_metadata()
         self._on_text = None
 
+    def __getattr__(self, key):
+        """ getter: allows external access to self._properties """
+
+        if not key in self._properties:
+            raise AttributeError()
+        return self._properties[key]
+
+    def _set(self, key, value):
+        if not key in self._properties:
+            raise AttributeError()
+        prev = self._properties[key]
+        self._properties[key] = value
+        if key in self._on_change and not value == prev:
+            for func in self._on_change[key]:
+                func(self, key, value)
+
+
     def _init_vendor_requests(self):
+
+        # wrap _set() with the right attribute name
+        def set(name):
+            def setter(data):
+                self._set(name, parse(data))
+            return setter
+
         self._auto_vendor_requests = [
-            VENDOR_REQUEST(GET_NAME,                self._set_name),
-            VENDOR_REQUEST(GET_FIRMWARE_VERSION,    self._set_fw_version),
-            VENDOR_REQUEST(GET_BOOTLOADER_VERSION,  self._set_bootloader_version),
-            VENDOR_REQUEST(GET_HARDWARE_VERSION,    self._set_hardware_version),
-            VENDOR_REQUEST(GET_BATTERY_VOLTAGE,     self._set_battery_voltage),
-            VENDOR_REQUEST(GET_PROGRAM_STATE,       self._set_program_state),
+            VENDOR_REQUEST(GET_NAME,                set('name')),
+            VENDOR_REQUEST(GET_FIRMWARE_VERSION,    set('fw_version')),
+            VENDOR_REQUEST(GET_BOOTLOADER_VERSION,  set('bootloader_version')),
+            VENDOR_REQUEST(GET_HARDWARE_VERSION,    set('hardware_version')),
+            VENDOR_REQUEST(GET_BATTERY_VOLTAGE,     set('battery_voltage')),
+            VENDOR_REQUEST(GET_PROGRAM_STATE,       set('program_state')),
         ]
-
-
-    def _set_name(self, data):
-        self.name = parse(data)
-
-    def _set_fw_version(self, data):
-        self.fw_version = parse(data)
-
-    def _set_bootloader_version(self, data):
-        self.bootloader_version = parse(data)
-        self.bootloader_version = ''.join([chr(c) for c in data])
-
-    def _set_hardware_version(self, data):
-        self.hardware_version = parse(data)
-
-    def _set_program_state(self, data):
-        self.program_state = parse(data)
-
-    def _set_battery_voltage(self, data):
-        self.battery_voltage = parse(data)
 
 
     def _handle_protocol_data(self, task):
@@ -188,6 +198,21 @@ class Device:
 
     def send_terminal_command(self, cmd):
         self.control_request(TERMINAL_CMD, data=cmd)
+
+    def on_change(self, property_name, cb):
+        """
+        cb(Device, 'property', <new_value>) is called
+        whenever the selected property has changed.
+
+        Example: dev.on_change('battery_voltage', myfunc).
+
+        As soon as battery_voltage changes (e.g. from 0 to 5000),
+        the callback is called: myfunc(dev, 'battery_voltage', 5000)
+        """
+        if not property_name in self._on_change:
+            self._on_change[property_name] = []
+        self._on_change[property_name].append(cb)
+
 
     def on_text(self, cb):
         """ cb(Device, line) is called for each line of incoming text """

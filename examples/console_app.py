@@ -64,6 +64,7 @@ class ConsoleApp:
         # subscribe on text output: process_line called from GUI thread
         cb = self._GUI_events.wrap(self._process_line)
         device.on_text(cb)
+        device.on_change('program_state', print)
         return device
 
 
