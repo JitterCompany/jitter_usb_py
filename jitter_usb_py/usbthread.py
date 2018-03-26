@@ -127,6 +127,16 @@ class USBThread:
         timerThread.deamon = True
         timerThread.start()
 
+    def read_queue_length(self):
+        """
+        Returns the length of the read Queue
+
+        this information can be used to determine wheter there is a backlog buildup.
+        """
+
+        return self.readQueue.qsize()
+
+
 # DEPRECATED for now. if you need this kind of functionality,
 # it should be implemented in Device, to avoid clearing writes to other
 # devices..
@@ -340,7 +350,7 @@ class USBThread:
             if task:
  #               print("read task for ep:", task.ep)
                 self.readCompleteQueue.put(task)
-            
+
             if self.repeatReader.should_repeat(task):
 
                 # Note: copy task to avoid re-using the buffer

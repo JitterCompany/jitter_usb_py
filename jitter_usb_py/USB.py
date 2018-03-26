@@ -93,6 +93,10 @@ class USB:
         for dev in self.list_devices():
             dev.remove()
 
+    def get_backlog_size(self):
+        """ Returns size of backlog of USB read tasks """
+        return self._usb_thread.read_queue_length()
+
 
     def list_devices(self, prev_list=None):
         """

@@ -95,7 +95,8 @@ class Device:
         lines = text.split('\n')
         if self._on_text:
             for l in lines:
-                self._on_text(self, l)
+                if l:
+                    self._on_text(self, l)
 
 
     def _blacklist_vendor_request(self, request_id):
