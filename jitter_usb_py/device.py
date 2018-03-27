@@ -127,8 +127,14 @@ class Device:
         for req in self._auto_vendor_requests:
             if req.req == request_id:
                 self._auto_vendor_requests.remove(req)
+
+        # before_init lists the requests that should still be completed
+        # befire itit_done. However, when a request is blacklisted, it should
+        # be removed to give the device a chance to become initialized
         if request_id in self._before_init:
             self._before_init.remove(request_id)
+            if not self._before_init:
+                self._set('init_done', True)
 
 
 
