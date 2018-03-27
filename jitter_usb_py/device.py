@@ -83,7 +83,8 @@ class Device:
 
 
 
-    def _add_vendor_request(self, req_id, property_name, before_init=True):
+    def _add_vendor_request(self, req_id, property_name,
+            before_init=True, transform=None):
         """
         define a public property, whose value is the result from
         the usb vendor-request with id 'req_id'.
@@ -96,13 +97,15 @@ class Device:
         if not property_name in self._properties:
             self._properties[property_name] = ''
 
-        # wrap _set() with the right attribute name
-        def setter():
-            def wrapped_set(data):
-                self._set(property_name, parse(data))
-            return wrapped_set
+        # parse as string by default
+        if not transform:
+            transform = parse
 
-        self._auto_vendor_requests.append(VENDOR_REQUEST(req_id, setter()))
+        # wrap _set() with the right attribute name
+        def wrapped_set(data):
+            self._set(property_name, transform(data))
+
+        self._auto_vendor_requests.append(VENDOR_REQUEST(req_id, wrapped_set))
         if before_init:
             self._before_init.append(req_id)
 
