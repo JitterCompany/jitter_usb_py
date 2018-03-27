@@ -49,16 +49,18 @@ class Device:
         # these are publicly accessible via self.<propertyname>
         # and are auto-updated by USB vendor-requests.
         self._properties  = {
-            'name'                  : '',
-            'fw_version'            : '',
-            'bootloader_version'    : '',
-            'hardware_version'      : '',
-            'battery_voltage'       : '',
-            'program_state'         : '',
+                'init_done':            False,
         }
         self._on_change = {}
+        self._auto_vendor_requests = []
+        self._before_init = []
 
-        self._init_vendor_requests()
+        self._add_vendor_request(GET_NAME,                'name'),
+        self._add_vendor_request(GET_FIRMWARE_VERSION,    'fw_version'),
+        self._add_vendor_request(GET_BOOTLOADER_VERSION,  'bootloader_version'),
+        self._add_vendor_request(GET_HARDWARE_VERSION,    'hardware_version'),
+        self._add_vendor_request(GET_BATTERY_VOLTAGE,     'battery_voltage'),
+        self._add_vendor_request(GET_PROGRAM_STATE,       'program_state'),
         self.update_metadata()
         self._on_text = None
 
@@ -79,22 +81,31 @@ class Device:
                 func(self, key, value)
 
 
-    def _init_vendor_requests(self):
+
+
+    def _add_vendor_request(self, req_id, property_name, before_init=True):
+        """
+        define a public property, whose value is the result from
+        the usb vendor-request with id 'req_id'.
+
+        Example: dev._add_vendor_request(GET_NAME, 'name')
+        dev.name is auto-updated (async) with the result from GET_NAME
+        """
+
+        # make sure the property exists
+        if not property_name in self._properties:
+            self._properties[property_name] = ''
 
         # wrap _set() with the right attribute name
-        def set(name):
-            def setter(data):
-                self._set(name, parse(data))
-            return setter
+        def setter():
+            def wrapped_set(data):
+                self._set(property_name, parse(data))
+            return wrapped_set
 
-        self._auto_vendor_requests = [
-            VENDOR_REQUEST(GET_NAME,                set('name')),
-            VENDOR_REQUEST(GET_FIRMWARE_VERSION,    set('fw_version')),
-            VENDOR_REQUEST(GET_BOOTLOADER_VERSION,  set('bootloader_version')),
-            VENDOR_REQUEST(GET_HARDWARE_VERSION,    set('hardware_version')),
-            VENDOR_REQUEST(GET_BATTERY_VOLTAGE,     set('battery_voltage')),
-            VENDOR_REQUEST(GET_PROGRAM_STATE,       set('program_state')),
-        ]
+        self._auto_vendor_requests.append(VENDOR_REQUEST(req_id, setter()))
+        if before_init:
+            self._before_init.append(req_id)
+
 
 
     def _handle_protocol_data(self, task):
@@ -113,6 +124,8 @@ class Device:
         for req in self._auto_vendor_requests:
             if req.req == request_id:
                 self._auto_vendor_requests.remove(req)
+        if request_id in self._before_init:
+            self._before_init.remove(request_id)
 
 
 
@@ -180,6 +193,21 @@ class Device:
 
         def fail_cb(task):
             self._blacklist_vendor_request(task.request)
+
+        def _data_callback(original_func):
+
+            def wrapper(*args, **kwargs):
+
+                # set _init_done=True when all vendor requests have been
+                # called at least once (or blacklisted)
+                if not self.init_done and request.req in self._before_init:
+                    self._before_init.remove(request.req)
+                    if not self._before_init:
+                        self._set('init_done', True)
+                
+                return original_func(args[0].data)
+            return wrapper
+
 
         self.control_request(request.req,
             dir="in", length=64,

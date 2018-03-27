@@ -69,7 +69,7 @@ class ConsoleApp:
 
 
     def _slow_timer_poll(self):
-        all_devices = self._USB.list_devices()
+        all_devices = self._USB.list_devices(initialized_only=True)
         if not self._selected_device in all_devices:
             self.select_device_at(0)
 
@@ -114,7 +114,7 @@ class ConsoleApp:
 
 
     def select_device_at(self, index):
-        devices = self._USB.list_devices()
+        devices = self._USB.list_devices(initialized_only=True)
         if (0 <= index < len(devices)):
             self._selected_device = devices[index]
             print("Selecting device", self._selected_device.serial_number)

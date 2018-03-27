@@ -98,9 +98,9 @@ class USB:
         return self._usb_thread.read_queue_length()
 
 
-    def list_devices(self, prev_list=None):
+    def list_devices(self, prev_list=None, initialized_only=False):
         """
-        get a list of all devices
+        get a list of all initialized devices
 
         Parameters
         ----------
@@ -109,16 +109,22 @@ class USB:
             to this function, change detection will be performed
             and an extra return value will indicate whether the
             device list differs from the list returned
+        initialized_only: flag to indicate only initialzed devices
+            should be returned. A device is initialzed when all its
+            auto_vendor_requests have completed at least once.
 
         Returns
         -------
         device_list: list of devices
-            All devices currently connected
+            All devices currently connected (and initialized)
         changed: boolean, optional
             True if device_list differs from prev_list.
             Only returned if prev_list is not None
         """
+        
         new_list = self._device_list.all()
+        if initialized_only and new_list:
+            new_list = [d for d in new_list if d.init_done]
 
         if prev_list is not None:
             return (new_list, _differ_lists(prev_list, new_list))
