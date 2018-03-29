@@ -236,10 +236,9 @@ class USBThread:
     def poll(self):
         while self._running:
             self._thread_events.poll()
-            self._handleControlTask()
+            for i in range(5):
+                self._handleControlTask()
             self._handleWriteTask()
-            self._handleReadTask()
-            self._handleReadTask()
             self._handleReadTask()
             self._handleSyncTasks()
             time.sleep(0.001)
@@ -338,8 +337,6 @@ class USBThread:
                 print_error(traceback.format_exc())
                 task.fail()
 
-            for _i in range(10):
-                self._handleReadTask()
 
     def _handleReadTask(self):
         try:
